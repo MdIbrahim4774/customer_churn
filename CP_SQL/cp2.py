@@ -1,0 +1,116 @@
+'''52
+
+CREATE TABLE stg_customer_raw (
+    customerID VARCHAR(20),
+    gender VARCHAR(20),
+    SeniorCitizen INT,
+    Partner VARCHAR(10),
+    Dependents VARCHAR(10),
+    tenure INT,
+    PhoneService VARCHAR(30),
+    MultipleLines VARCHAR(30),
+    InternetService VARCHAR(30),
+    OnlineSecurity VARCHAR(30),
+    OnlineBackup VARCHAR(30),
+    DeviceProtection VARCHAR(30),
+    TechSupport VARCHAR(30),
+    StreamingTV VARCHAR(30),
+    StreamingMovies VARCHAR(30),
+    Contract VARCHAR(30),
+    PaperlessBilling VARCHAR(10),
+    PaymentMethod VARCHAR(50),
+    MonthlyCharges DECIMAL(10,2),
+    TotalCharges VARCHAR(30),
+    Churn VARCHAR(10)
+);'''
+
+#53
+
+import pandas as pd
+from sqlalchemy import create_engine
+
+df = pd.read_csv("Telco-Customer-Churn.csv")
+
+engine = create_engine(
+    "mysql+pymysql://root:root@localhost:3306/customer_churn"
+)
+
+df.to_sql(
+    "stg_customer_raw",
+    con=engine,
+    if_exists="append",
+    index=False
+)
+
+"""#54
+
+SELECT COUNT(*) AS row_count
+FROM stg_customer_raw;
+"""
+
+"""
+55
+
+SELECT TotalCharges
+FROM stg_customer_raw
+WHERE TotalCharges = ''
+LIMIT 5;
+"""
+
+
+"""
+56
+
+SELECT
+    COLUMN_NAME,
+    DATA_TYPE,
+    COLUMN_TYPE
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_SCHEMA = DATABASE()
+AND TABLE_NAME = 'stg_customer_raw'
+AND COLUMN_NAME = 'TotalCharges';
+
+"""
+
+
+"""
+57
+
+CREATE TABLE ingestion_log (
+    ingestion_id INT AUTO_INCREMENT PRIMARY KEY,
+    filename VARCHAR(255) NOT NULL,
+    row_count INT NOT NULL,
+    load_timestamp DATETIME NOT NULL,
+    status VARCHAR(20) NOT NULL
+);
+
+INSERT INTO ingestion_log (
+    filename,
+    row_count,
+    load_timestamp,
+    status
+)
+SELECT
+    'Telco-Customer-Churn.csv',
+    COUNT(*),
+    NOW(),
+    'SUCCESS'
+FROM stg_customer_raw;
+
+SELECT *
+FROM ingestion_log
+ORDER BY ingestion_id DESC
+LIMIT 1;
+
+"""
+
+
+'''
+58
+
+SELECT
+    COUNT(*) AS total_rows,
+    COUNT(DISTINCT customerID) AS distinct_customer_ids
+FROM stg_customer_raw;
+'''
+

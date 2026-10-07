@@ -1,0 +1,215 @@
+45
+
+| Category                 | Column             | Meaning                    |
+| ------------------------ | ------------------ | -------------------------- |
+| **Stable identity**      | `customerID`       | Unique customer identifier |
+| **Stable identity**      | `gender`           | Customer gender            |
+| **Stable identity**      | `SeniorCitizen`    | Senior-citizen indicator   |
+| **Stable identity**      | `Partner`          | Has partner                |
+| **Stable identity**      | `Dependents`       | Has dependents             |
+| **Service subscription** | `tenure`           | Months with company        |
+| **Service subscription** | `PhoneService`     | Phone service              |
+| **Service subscription** | `MultipleLines`    | Multiple phone lines       |
+| **Service subscription** | `InternetService`  | Internet service type      |
+| **Service subscription** | `OnlineSecurity`   | Online security            |
+| **Service subscription** | `OnlineBackup`     | Online backup              |
+| **Service subscription** | `DeviceProtection` | Device protection          |
+| **Service subscription** | `TechSupport`      | Technical support          |
+| **Service subscription** | `StreamingTV`      | Streaming TV               |
+| **Service subscription** | `StreamingMovies`  | Streaming movies           |
+| **Service subscription** | `Contract`         | Contract type              |
+| **Service subscription** | `PaperlessBilling` | Paperless billing          |
+| **Billing / charges**    | `PaymentMethod`    | Payment method             |
+| **Billing / charges**    | `MonthlyCharges`   | Monthly charge             |
+| **Billing / charges**    | `TotalCharges`     | Total charges              |
+| **Churn outcome**        | `Churn`            | Whether customer churned   |
+
+46
+
+customers
+---------
+customer_id PK
+gender
+senior_citizen
+partner
+dependents
+
+
+contracts
+---------
+customer_id PK, FK
+tenure
+contract_type
+paperless_billing
+
+
+services
+--------
+customer_id PK, FK
+phone_service
+multiple_lines
+internet_service
+online_security
+online_backup
+device_protection
+tech_support
+streaming_tv
+streaming_movies
+
+
+billing
+-------
+customer_id PK, FK
+payment_method
+monthly_charges
+total_charges
+
+
+customer_status
+---------------
+customer_id PK, FK
+churn
+
+
+47
+
+                         ┌──────────────────┐
+                         │    customers     │
+                         ├──────────────────┤
+                         │ PK customer_id   │
+                         │ gender           │
+                         │ senior_citizen   │
+                         │ partner          │
+                         │ dependents       │
+                         └────────┬─────────┘
+                                  │
+              ┌───────────────────┼───────────────────┐
+              │                   │                   │
+              │                   │                   │
+              ▼                   ▼                   ▼
+      ┌───────────────┐   ┌───────────────┐   ┌───────────────┐
+      │   contracts   │   │    services   │   │    billing    │
+      ├───────────────┤   ├───────────────┤   ├───────────────┤
+      │ PK/FK         │   │ PK/FK         │   │ PK/FK         │
+      │ customer_id   │   │ customer_id   │   │ customer_id   │
+      │ tenure        │   │ phone_service │   │ payment_method│
+      │ contract_type │   │ multiple_lines│   │ monthly_charge│
+      │ paperless...  │   │ internet...   │   │ total_charges │
+      └───────────────┘   │ ...           │   └───────────────┘
+                          └───────────────┘
+                                  │
+                                  │
+                                  ▼
+                         ┌──────────────────┐
+                         │ customer_status  │
+                         ├──────────────────┤
+                         │ PK/FK customer_id│
+                         │ churn            │
+                         └──────────────────┘
+
+48
+
+| Table             | Primary Key   | Foreign Key                           |
+| ----------------- | ------------- | ------------------------------------- |
+| `customers`       | `customer_id` | `—  `                                 |
+| `contracts`       | `customer_id` | `customer_id → customers.customer_id` |
+| `services`        | `customer_id` | `customer_id → customers.customer_id` |
+| `billing`         | `customer_id` | `customer_id → customers.customer_id` |
+| `customer_status` | `customer_id` | `customer_id → customers.customer_id` |
+
+
+49
+
+Dimension like
+---------------
+gender
+senior_citizen
+partner
+dependents
+
+phone_service
+multiple_lines
+internet_service
+online_security
+online_backup
+device_protection
+tech_support
+streaming_tv
+streaming_movies
+
+contract_type
+paperless_billing
+payment_method
+
+churn
+
+
+
+Measure like
+-------------
+tenure
+monthly_charges
+total_charges
+
+
+50
+
+CREATE TABLE customers (
+    customer_id VARCHAR(20) PRIMARY KEY,
+    gender VARCHAR(20),
+    senior_citizen BOOLEAN,
+    partner BOOLEAN,
+    dependents BOOLEAN
+);
+
+CREATE TABLE contracts (
+    customer_id VARCHAR(20) PRIMARY KEY,
+    tenure INTEGER,
+    contract_type VARCHAR(30),
+    paperless_billing BOOLEAN,
+
+    CONSTRAINT fk_contract_customer
+        FOREIGN KEY (customer_id)
+        REFERENCES customers(customer_id)
+);
+
+CREATE TABLE services (
+    customer_id VARCHAR(20) PRIMARY KEY,
+    phone_service BOOLEAN,
+    multiple_lines VARCHAR(30),
+    internet_service VARCHAR(30),
+    online_security VARCHAR(30),
+    online_backup VARCHAR(30),
+    device_protection VARCHAR(30),
+    tech_support VARCHAR(30),
+    streaming_tv VARCHAR(30),
+    streaming_movies VARCHAR(30),
+
+    CONSTRAINT fk_service_customer
+        FOREIGN KEY (customer_id)
+        REFERENCES customers(customer_id)
+);
+
+CREATE TABLE billing (
+    customer_id VARCHAR(20) PRIMARY KEY,
+    payment_method VARCHAR(50),
+    monthly_charges DECIMAL(10,2),
+    total_charges DECIMAL(12,2),
+
+    CONSTRAINT fk_billing_customer
+        FOREIGN KEY (customer_id)
+        REFERENCES customers(customer_id)
+);
+
+CREATE TABLE customer_status (
+    customer_id VARCHAR(20) PRIMARY KEY,
+    churn BOOLEAN,
+
+    CONSTRAINT fk_status_customer
+        FOREIGN KEY (customer_id)
+        REFERENCES customers(customer_id)
+);
+
+51
+
+We chose a normalised OLTP-style schema because the objective is to separate customer identity, contracts, services, billing, and churn status while reducing redundancy and maintaining referential integrity. The raw CSV is retained separately as a staging table. If the same data were primarily used for analytical reporting, we could later create a denormalised dimensional model or reporting layer for faster analytical queries.
